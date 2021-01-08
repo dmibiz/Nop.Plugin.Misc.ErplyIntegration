@@ -1,0 +1,27 @@
+﻿@inject Nop.Core.IWebHelper webHelper
+
+@{
+    Layout = "_AdminLayout";
+}
+
+<form asp-controller="ErplyIntegration" asp-action="ManageImport" method="post">
+    <div class="content-header clearfix">
+        <h1 class="pull-left">Erply</h1>
+    </div>
+    <div class="content">
+        <div class="form-horizontal">
+            <div class="panel panel-default">
+                <div class="panel-body">
+                    <button type="submit" name="importType" value="products" class="btn bg-olive">
+                        <i class="fa fa-upload"></i>
+                        Import products
+                    </button>
+                    <button type="submit" name="importType" value="categories" class="btn bg-olive">
+                        <i class="fa fa-upload"></i>
+                        Import categories
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>

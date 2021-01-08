@@ -1,0 +1,11 @@
+﻿{
+  "Group": "Misc",
+  "FriendlyName": "Erply Integration",
+  "SystemName": "Misc.ErplyIntegration",
+  "Version": "1.00",
+  "SupportedVersions": [ "4.30" ],
+  "Author": "Author Name",
+  "DisplayOrder": 1,
+  "FileName": "Nop.Plugin.Misc.ErplyIntegration.dll",
+  "Description": "The plugin enables the import of products from Erply inventory management"
+}
