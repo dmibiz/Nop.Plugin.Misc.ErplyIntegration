@@ -101,7 +101,6 @@ namespace Nop.Plugin.Misc.ErplyIntegration.Api
                 var verifyUserResponseRecord = JsonConvert.DeserializeObject<ErplyUserResponse>(verifyUserResponse)?.Records?.First();
 
                 string sessionKey = verifyUserResponseRecord?.SessionKey;
-                Console.WriteLine(sessionKey);
 
                 if (sessionKey != null)
                 {
