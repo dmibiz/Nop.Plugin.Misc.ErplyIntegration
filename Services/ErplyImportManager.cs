@@ -8,6 +8,7 @@ using Nop.Services.Seo;
 using Nop.Plugin.Misc.ErplyIntegration.Factories;
 using Nop.Plugin.Misc.ErplyIntegration.Domains;
 using Nop.Plugin.Misc.ErplyIntegration.Api;
+using Nop.Plugin.Misc.ErplyIntegration.Api.Models.Request;
 using Nop.Plugin.Misc.ErplyIntegration.Api.Models.Response;
 
 namespace Nop.Plugin.Misc.ErplyIntegration.Services
@@ -50,7 +51,13 @@ namespace Nop.Plugin.Misc.ErplyIntegration.Services
         public async Task ImportCategories()
         {
             var erplyApi = _erplyApiFactory.GetApi();
-            var erplyProductGroups = await erplyApi.GetProductGroups();
+
+            ErplyGetProductGroupsRequest erplyProductGroupsRequest = new ErplyGetProductGroupsRequest()
+            {
+                ShowInWebshop = 1
+            };
+
+            var erplyProductGroups = await erplyApi.GetProductGroups(erplyProductGroupsRequest);
             var categoryMappings = _erplyMappingService.GetAllCategoryMappings();
             var allCategories = _categoryService.GetAllCategories(showHidden: true);
 
@@ -113,16 +120,24 @@ namespace Nop.Plugin.Misc.ErplyIntegration.Services
 
         public async Task ImportProducts()
         {
-            int apiRequestPageNo = 1;
             var erplyApi = _erplyApiFactory.GetApi();
             List<string> erplyProductCodes = new List<string>();
             List<ErplyProductsResponseRecord> erplyProducts = new List<ErplyProductsResponseRecord>();
             var categoryMappings = _erplyMappingService.GetAllCategoryMappings();
 
+            ErplyGetProductsRequest erplyProductsRequest = new ErplyGetProductsRequest()
+            {
+                DisplayedInWebshop = 1,
+                GetStockInfo = 1,
+                OrderByDir = ErplyApi.SortDirectionAscending,
+                RecordsOnPage = 100,
+                PageNo = 1,
+                Status = ErplyApi.ProductStatusActive
+            };
             ErplyProductsResponse erplyProductsResponse;
             do
             {
-                erplyProductsResponse = await erplyApi.GetProducts(true, ErplyApi.SortDirectionAscending, 100, apiRequestPageNo, ErplyApi.ProductStatusActive);
+                erplyProductsResponse = await erplyApi.GetProducts(erplyProductsRequest);
 
                 foreach (var erplyProduct in erplyProductsResponse.Records)
                 {
@@ -130,7 +145,7 @@ namespace Nop.Plugin.Misc.ErplyIntegration.Services
                     erplyProducts.Add(erplyProduct);
                 }
 
-                apiRequestPageNo++;
+                erplyProductsRequest.PageNo++;
             } while (erplyProductsResponse.Records.Count > 0);
 
             var allProductsBySku = _productService.GetProductsBySku(erplyProductCodes.ToArray());

@@ -4,6 +4,7 @@ using System.Net.Http;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
+using Nop.Plugin.Misc.ErplyIntegration.Api.Models.Request;
 using Nop.Plugin.Misc.ErplyIntegration.Api.Models.Response;
 using Nop.Plugin.Misc.ErplyIntegration.Api.Models.Session;
 using Nop.Plugin.Misc.ErplyIntegration.Extensions;
@@ -57,27 +58,21 @@ namespace Nop.Plugin.Misc.ErplyIntegration.Api
 
         #region Methods
 
-        public async Task<string> SendRequest(
-            string requestName, 
-            IEnumerable<KeyValuePair<string, string>> requestParameters = null)
+        public async Task<T> SendRequest<T>(ErplyRequest request)
         {
-            var additionalParameters = new List<KeyValuePair<string, string>>
-            {
-                new KeyValuePair<string, string>("request", requestName),
-                new KeyValuePair<string, string>("clientCode", _clientCode),
-                new KeyValuePair<string, string>("version", "1.0")
-            };
+            request.ClientCode = _clientCode;
 
-            if (requestName != "verifyUser")
+            if (request.GetType() != typeof(ErplyVerifyUserRequest))
             {
                 string sessionKey = await GetSessionKey();
-                additionalParameters.Add(new KeyValuePair<string, string>("sessionKey", sessionKey));
+                request.SessionKey = sessionKey;
             }
-            
 
-            var requestBody = new FormUrlEncodedContent(requestParameters.Concat(additionalParameters));
+            var requestBody = new FormUrlEncodedContent(request.ToKeyValuePairList());
             var response = _httpClient.PostAsync(_url, requestBody).Result;
-            return await response.Content.ReadAsStringAsync();
+            var responseBody = await response.Content.ReadAsStringAsync();
+
+            return JsonConvert.DeserializeObject<T>(responseBody);
         }
 
         public async Task<string> GetSessionKey()
@@ -90,15 +85,14 @@ namespace Nop.Plugin.Misc.ErplyIntegration.Api
             {
                 erplySessionItems.RemoveAll(item => item.ClientCode == _clientCode);
 
-                var verifyUserResponse = await SendRequest(
-                    "verifyUser",
-                    new[]
-                    {
-                        new KeyValuePair<string, string>("username", _username),
-                        new KeyValuePair<string, string>("password", _password)
-                    }
-                );
-                var verifyUserResponseRecord = JsonConvert.DeserializeObject<ErplyUserResponse>(verifyUserResponse)?.Records?.First();
+                ErplyVerifyUserRequest verifyUserRequest = new ErplyVerifyUserRequest()
+                {
+                    Username = _username,
+                    Password = _password
+                };
+
+                var verifyUserResponse = await SendRequest<ErplyUserResponse>(verifyUserRequest);
+                var verifyUserResponseRecord = verifyUserResponse?.Records?.First();
 
                 string sessionKey = verifyUserResponseRecord?.SessionKey;
 
@@ -120,33 +114,14 @@ namespace Nop.Plugin.Misc.ErplyIntegration.Api
             return Session?.GetObject<List<ErplySessionItem>>("ErplySession")?.FirstOrDefault(item => item.ClientCode == _clientCode)?.SessionKey;
         }
 
-        public async Task<ErplyProductGroupsResponse> GetProductGroups()
+        public async Task<ErplyProductGroupsResponse> GetProductGroups(ErplyGetProductGroupsRequest request = null)
         {
-            var erplyProductGroupsResponse = await SendRequest(
-                "getProductGroups",
-                new List<KeyValuePair<string, string>>
-                {
-                    new KeyValuePair<string, string>("showInWebShop", "1"),
-                }
-            );
-            return JsonConvert.DeserializeObject<ErplyProductGroupsResponse>(erplyProductGroupsResponse);
+            return await SendRequest<ErplyProductGroupsResponse>(request);
         }
 
-        public async Task<ErplyProductsResponse> GetProducts(bool getStockInfo, string orderByDir, int recordsOnPage, int pageNo, string status)
+        public async Task<ErplyProductsResponse> GetProducts(ErplyGetProductsRequest request)
         {
-            var erplyProductsResponse = await SendRequest(
-                "getProducts",
-                new List<KeyValuePair<string, string>>
-                {
-                    new KeyValuePair<string, string>("displayedInWebshop", "1"),
-                    new KeyValuePair<string, string>("getStockInfo", getStockInfo ? "1" : "0"),
-                    new KeyValuePair<string, string>("orderByDir", orderByDir),
-                    new KeyValuePair<string, string>("recordsOnPage", recordsOnPage.ToString()),
-                    new KeyValuePair<string, string>("pageNo", pageNo.ToString()),
-                    new KeyValuePair<string, string>("status", status)
-                }
-            );
-            return JsonConvert.DeserializeObject<ErplyProductsResponse>(erplyProductsResponse);
+            return await SendRequest<ErplyProductsResponse>(request);
         }
 
         #endregion
